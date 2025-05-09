@@ -1,0 +1,44 @@
+Auth yang akan di implmentasi adalah JSON Web Token (JWT),
+JWT bisa digunakan untuk berkomunikasi antara server dan client,
+
+contoh token JWT adalah
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkRldmVsb3BlciIsImlhdCI6MTUxNjIzOTAyMn0.
+SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+
+berisi , <header>.<payload>.<signature>
+
+header : berisi algoritma/tipe token
+contoh :
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+payload: berisi informasi public
+contoh :
+{
+  "sub": "1234567890",
+  "name": "Developer",
+  "role": "admin",
+  "iat": 1516239022, // issued at token dikeluarkan
+  "exp": 1516242622 // expiration waktu kadaluarsa token
+}
+
+signature
+digunakan untuk memastikan token tersebut valid.
+berisi
+
+HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload), secret
+)
+
+Alur Otentikasi dengan JWT
+1. User login (kirim username dan password).
+2. Server verifikasi kredensial.
+3. Jika valid, server membuat JWT dan mengirimkannya ke client.
+4. Client menyimpan token dan mengirimkannya pada setiap permintaan ke server melalui header:
+        -- Authorization: Bearer <token>
+5. Server memverifikasi signature dan waktu kedaluwarsa.
+6. Jika valid, permintaan diizinkan.

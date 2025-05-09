@@ -1,0 +1,78 @@
+error handling ketika kita connect ke external server bisa di lakukan sesuai dengan dokumentasi yang disediakan oleh pihak external.
+
+secara standar kita bisa menggunakan code seperti berikut
+
+public String fetchDataFromExternalService(String url) {
+    try {
+        return restTemplate.getForObject(url, String.class);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+        // Handle client or server-side HTTP error
+        // 400 or 500 http code
+        throw new ExternalServiceException("Service error: " + e.getStatusCode(), e);
+    } catch (ResourceAccessException e) {
+        // Handle network or timeout errors
+        throw new ExternalServiceException("Network error: " + e.getMessage(), e);
+    } catch (Exception e) {
+        // Handle other unexpected errors
+        throw new ExternalServiceException("Unexpected error occurred while calling the external service.", e);
+    }
+}
+
+atau secara spesifik bisa menggunakan seperti contoh yang sudah saya impl
+
+public Object inhouseTransfer() {
+     ClientHttpRequestFactory factory = new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory());
+     RestTemplate restTemplate = new RestTemplate(factory);
+     List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
+     if (CollectionUtils.isEmpty(interceptors)) {
+         interceptors = new ArrayList<>();
+     }
+     interceptors.add(new RequestResponseLoggingInterceptor());
+     interceptors.add(new BCATransactionInterceptor(accessGrant.getAccessToken(), bcaApiKey, bcaApiSecret, channelId, bcaCredentialId));
+     restTemplate.setInterceptors(interceptors);
+     restTemplate.setErrorHandler(new BCAErrorHandler());
+
+     String responseJson = "";
+     InhouseTransferResponse response = new InhouseTransferResponse();
+     try {
+         response = restTemplate.postForObject(url, domesticTransferRequest, InhouseTransferResponse.class);
+         gson = new GsonBuilder().setPrettyPrinting().create();
+         responseJson = gson.toJson(response);
+         log.error("BCA RESPONSE {} ", responseJson);
+
+     } catch (BCAException e) {
+         // todo bussines logic
+     } catch (HttpClientErrorException | HttpServerErrorException e) {
+         // Handle client or server-side HTTP error
+         // 400 or 500 http code
+         throw new ExternalServiceException("Service error: " + e.getStatusCode(), e);
+       } catch (ResourceAccessException e) {
+         // Handle network or timeout errors
+         throw new ExternalServiceException("Network error: " + e.getMessage(), e);
+       } catch (Exception e){
+         throw new InternalServerError("Something Went Wrong");
+     }
+     return response;
+ }
+
+ public class BCAErrorHandler extends DefaultResponseErrorHandler {
+
+     ObjectMapper mapper = new ObjectMapper();
+
+     @Override
+     public void handleError(ClientHttpResponse clientHttpResponse) throws IOException {
+
+         ErrorWrapper errorWrapper = extractErrorFromResponse(clientHttpResponse); // DTO disesuikan dengan response external API
+         Gson gson = new GsonBuilder().setPrettyPrinting().create();
+         String error = gson.toJson(errorWrapper);
+         // this line for exception from BCA
+         if (Validator.isNotNull(errorWrapper.getError_code())){
+             throw new BCAException(clientHttpResponse.getStatusCode(), errorWrapper.getError_code(), errorWrapper.getError_message());
+         }
+         throw new ServiceUnavailableException("Something Went Wrong");
+     }
+
+     private ErrorWrapper extractErrorFromResponse(ClientHttpResponse clientHttpResponse) throws IOException {
+         return mapper.readValue(clientHttpResponse.getBody(), ErrorWrapper.class);
+     }
+ }
