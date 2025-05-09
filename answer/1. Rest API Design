@@ -1,0 +1,24 @@
+@RestController
+@RequestMapping("/api/tasks")
+public class TaskController extend BaseController{
+
+    @Autowired
+    private TaskService taskService;
+
+    @PostMapping
+    public ResponseEntity<Task> createTask(@RequestBody Task task) {
+        Task createdTask = taskService.createTask(task);
+        return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/{status}")
+    public ResponseEntity<Task> completeTask(@UserContext User, @PathVariable Long id) {
+        Task updatedTask = taskService.markAsCompleted(id);
+        return ResponseEntity.ok(updatedTask);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Task>> getAllTasks() {
+        return ResponseEntity.ok(taskService.getAllTasks());
+    }
+}
