@@ -6,7 +6,7 @@ import com.riz.test_samir.dto.TaskCreateDto;
 import com.riz.test_samir.dto.TaskDto;
 import com.riz.test_samir.mapper.TaskMapper;
 import com.riz.test_samir.repository.TaskRepository;
-import com.riz.test_samir.repository.UserRepository;
+import com.riz.test_samir.repository.UserInfoRepository;
 import com.riz.test_samir.service.TaskService;
 import com.riz.test_samir.web.exception.BadRequestException;
 import com.riz.test_samir.web.exception.NotFoundException;
@@ -22,19 +22,19 @@ public class TaskServiceImpl implements TaskService {
 
     public static final String TASK_NOT_FOUND = "Task not found";
     private final TaskRepository taskRepository;
-    private final UserRepository userRepository;
+    private final UserInfoRepository userInfoRepository;
 
     @Autowired
-    public TaskServiceImpl(TaskRepository taskRepository, UserRepository userRepository) {
+    public TaskServiceImpl(TaskRepository taskRepository, UserInfoRepository userInfoRepository) {
         this.taskRepository = taskRepository;
-        this.userRepository = userRepository;
+        this.userInfoRepository = userInfoRepository;
     }
 
     @Override
     @Transactional
     public void create(TaskCreateDto taskCreateDto) {
         validateTitle(taskCreateDto.getTitle());
-        userRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
+        userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
 
         Task task = TaskMapper.INSTANCE.taskDtoToTaskCreate(taskCreateDto);
         taskRepository.save(task);
@@ -47,7 +47,7 @@ public class TaskServiceImpl implements TaskService {
     public TaskDto update(Long id, TaskCreateDto taskCreateDto) {
         validateTitle(taskCreateDto.getTitle());
         Task taskExisting = taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
-        userRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
+        userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
 
         // todo validate only task with updateBy same as login who can edit
 

@@ -11,7 +11,7 @@ public class TaskDto {
     private String title;
     private String description;
     private TaskStatusEnum status;
-    private UserDto assign;
-    private UserDto createdBy;
+    private UserInfoDto assign;
+    private UserInfoDto createdBy;
     private LocalDateTime createdAt;
 }
