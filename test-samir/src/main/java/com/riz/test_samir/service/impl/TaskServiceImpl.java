@@ -2,6 +2,7 @@ package com.riz.test_samir.service.impl;
 
 import com.riz.test_samir.constans.TaskStatusEnum;
 import com.riz.test_samir.domain.Task;
+import com.riz.test_samir.domain.User;
 import com.riz.test_samir.dto.TaskCreateDto;
 import com.riz.test_samir.dto.TaskDto;
 import com.riz.test_samir.mapper.TaskMapper;
@@ -32,7 +33,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public void create(TaskCreateDto taskCreateDto) {
+    public void create(User user, TaskCreateDto taskCreateDto) {
         validateTitle(taskCreateDto.getTitle());
         userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
 
@@ -44,7 +45,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public TaskDto update(Long id, TaskCreateDto taskCreateDto) {
+    public TaskDto update(User user, Long id, TaskCreateDto taskCreateDto) {
         validateTitle(taskCreateDto.getTitle());
         Task taskExisting = taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
         userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
@@ -66,7 +67,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional
-    public void updateStatus(Long id, TaskStatusEnum status) {
+    public void updateStatus(User user, Long id, TaskStatusEnum status) {
         // todo updateBy with user login  or add history update
         taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
         taskRepository.updateTaskStatus(id, status);

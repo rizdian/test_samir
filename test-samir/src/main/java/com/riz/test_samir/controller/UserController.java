@@ -2,6 +2,7 @@ package com.riz.test_samir.controller;
 
 import com.riz.test_samir.domain.User;
 import com.riz.test_samir.dto.AuthRequest;
+import com.riz.test_samir.dto.UserInfoDetails;
 import com.riz.test_samir.service.JwtService;
 import com.riz.test_samir.service.UserService;
 import com.riz.test_samir.web.BaseController;
@@ -40,7 +41,8 @@ public class UserController extends BaseController {
                 new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
         );
         if (authentication.isAuthenticated()) {
-            return jwtService.generateToken(authRequest.getUsername());
+            UserInfoDetails userDetails = (UserInfoDetails) authentication.getPrincipal();
+            return jwtService.generateToken(userDetails);
         } else {
             throw new UsernameNotFoundException("Invalid user request!");
         }

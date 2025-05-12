@@ -1,6 +1,8 @@
 package com.riz.test_samir.domain;
 
 import com.riz.test_samir.constans.TaskStatusEnum;
+import com.riz.test_samir.filter.UserContext;
+import com.riz.test_samir.web.exception.BadRequestException;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -34,10 +36,11 @@ public class Task {
     @PrePersist
     public void prePersist() {
         this.status = TaskStatusEnum.PENDING;
-        if (this.createdBy == null) {
-            User currentUser = new User();
-            currentUser.setId(2L);
-            this.createdBy = currentUser;
+        User user = UserContext.getUser();
+        if (user.getId() == null){
+            throw new BadRequestException("User not found");
         }
+        this.createdBy = user;
+        this.createdAt = LocalDateTime.now();
     }
 }

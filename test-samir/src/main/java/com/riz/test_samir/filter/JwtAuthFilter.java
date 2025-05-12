@@ -2,8 +2,10 @@ package com.riz.test_samir.filter;
 
 
 
+import com.riz.test_samir.domain.User;
 import com.riz.test_samir.service.JwtService;
 import com.riz.test_samir.service.UserService;
+import com.riz.test_samir.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,7 +49,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             // Extracting username from the token
             userName = jwtService.extractUserName(token);
-        }
 
         // If username is extracted and there is no authentication in the current SecurityContext
         if (userName != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -62,6 +63,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 // Setting the authentication token in the SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                try {
+                    User userInfo = jwtService.extractUserDetail(token);
+                    UserContext.setUser(userInfo);
+                } catch (Exception e) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid Token");
+                    return;
+                }
+            }
             }
         }
 

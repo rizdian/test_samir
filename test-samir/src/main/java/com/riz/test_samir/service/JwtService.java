@@ -1,5 +1,7 @@
 package com.riz.test_samir.service;
 
+import com.riz.test_samir.domain.User;
+import com.riz.test_samir.dto.UserInfoDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -22,15 +24,17 @@ public class JwtService {
 
 
     // Generates a JWT token for the given userName.
-    public String generateToken(String userName) {
+    public String generateToken(UserInfoDetails userInfoDetails) {
         // Prepare claims for the token
         Map<String, Object> claims = new HashMap<>();
+        claims.put("id", userInfoDetails.getId());
 
         // Build JWT token with claims, subject, issued time, expiration time, and signing algorithm
         // Token valid for 3 minutes
+
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(userName)
+                .setSubject(userInfoDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 3))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
@@ -43,6 +47,10 @@ public class JwtService {
         // Decode the base64 encoded secret key and return a Key object
         byte[] keyBytes = Decoders.BASE64.decode(SECRET);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private String extractUserId(String token){
+        return extractClaim(token, Claims -> Claims.get("id", String.class));
     }
 
 
@@ -77,7 +85,8 @@ public class JwtService {
         // Parse and return all claims from the token
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
-                .build().parseClaimsJws(token).getBody();
+                .build().parseClaimsJws(token)
+                .getBody();
     }
 
 
@@ -96,5 +105,12 @@ public class JwtService {
         final String userName = extractUserName(token);
         // Also check if the token is expired
         return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    public User extractUserDetail(String token){
+        User user = new User();
+        user.setId(Long.valueOf(extractUserId(token)));
+        user.setUsername(extractUserName(token));
+        return user;
     }
 }
