@@ -1,7 +1,9 @@
 package com.riz.test_samir.controller;
 
+import com.riz.test_samir.domain.User;
 import com.riz.test_samir.dto.TaskCreateDto;
 import com.riz.test_samir.constans.TaskStatusEnum;
+import com.riz.test_samir.filter.UserContext;
 import com.riz.test_samir.service.TaskService;
 import com.riz.test_samir.web.BaseController;
 import jakarta.validation.Valid;
@@ -22,13 +24,15 @@ public class TaskController extends BaseController {
 
     @PostMapping
     public Object createTask(@RequestBody @Valid TaskCreateDto taskCreateDto) {
-        taskService.create(taskCreateDto);
+        User user = UserContext.getUser();
+        taskService.create(user, taskCreateDto);
         return buildResponseDataCreated();
     }
 
     @PutMapping("/{id}")
     public Object updateTask(@PathVariable Long id, @RequestBody @Valid TaskCreateDto taskCreateDto) {
-        return buildResponseGeneralSuccess(taskService.update(id, taskCreateDto));
+        User user = UserContext.getUser();
+        return buildResponseGeneralSuccess(taskService.update(user, id, taskCreateDto));
 
     }
 
@@ -39,7 +43,8 @@ public class TaskController extends BaseController {
 
     @PatchMapping("/{id}/status")
     public Object updateTaskStatus(@PathVariable Long id, @RequestParam TaskStatusEnum status) {
-        taskService.updateStatus(id, status);
+        User user = UserContext.getUser();
+        taskService.updateStatus(user, id, status);
         return buildResponseGeneralSuccess();
     }
 
