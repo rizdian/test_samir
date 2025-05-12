@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,14 +31,12 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", userInfoDetails.getId());
 
-        // Build JWT token with claims, subject, issued time, expiration time, and signing algorithm
-        // Token valid for 3 minutes
 
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userInfoDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 3))
+                .setExpiration(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 

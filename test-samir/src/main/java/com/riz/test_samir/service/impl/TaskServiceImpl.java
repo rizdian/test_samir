@@ -34,7 +34,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public void create(User user, TaskCreateDto taskCreateDto) {
-        validateTitle(taskCreateDto.getTitle());
+        validateTitle(taskCreateDto.getTitle(), null);
         userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
 
         Task task = TaskMapper.INSTANCE.taskDtoToTaskCreate(taskCreateDto);
@@ -46,14 +46,13 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public TaskDto update(User user, Long id, TaskCreateDto taskCreateDto) {
-        validateTitle(taskCreateDto.getTitle());
-        Task taskExisting = taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+        Task taskExisting = taskRepository.findTaskByIdAndCreatedById(id, user.getId()).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+        validateTitle(taskCreateDto.getTitle(), taskExisting.getTitle());
         userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
-
-        // todo validate only task with updateBy same as login who can edit
 
         Task task = TaskMapper.INSTANCE.taskDtoToTaskUpdate(taskCreateDto, id);
         task.setCreatedBy(taskExisting.getCreatedBy());
+        task.setCreatedAt(taskExisting.getCreatedAt());
         task = taskRepository.save(task);
         addHistoryTask(task);
         return TaskMapper.INSTANCE.taskToTaskDto(task);
@@ -68,7 +67,6 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public void updateStatus(User user, Long id, TaskStatusEnum status) {
-        // todo updateBy with user login  or add history update
         taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
         taskRepository.updateTaskStatus(id, status);
         addHistoryTask(taskRepository.getReferenceById(id));
@@ -86,7 +84,8 @@ public class TaskServiceImpl implements TaskService {
         );
     }
 
-    private void validateTitle(String title) {
+    private void validateTitle(String title, String taskExistingTitle) {
+        if (taskExistingTitle!= null && taskExistingTitle.equalsIgnoreCase(title)) return;
         if (taskRepository.existsTaskByTitleEqualsIgnoreCase(title)){
             throw new BadRequestException("Title already exists");
         }
