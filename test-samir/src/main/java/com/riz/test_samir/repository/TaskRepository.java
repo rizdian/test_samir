@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Task t SET t.status = :status WHERE t.id = :id")
     void updateTaskStatus(@Param("id") Long id, @Param("status") TaskStatusEnum status);
 
