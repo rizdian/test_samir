@@ -2,10 +2,13 @@ package com.riz.test_samir.service.impl;
 
 import com.riz.test_samir.constans.TaskStatusEnum;
 import com.riz.test_samir.domain.Task;
+import com.riz.test_samir.domain.TaskHistory;
 import com.riz.test_samir.domain.User;
 import com.riz.test_samir.dto.TaskCreateDto;
 import com.riz.test_samir.dto.TaskDto;
+import com.riz.test_samir.filter.UserContext;
 import com.riz.test_samir.mapper.TaskMapper;
+import com.riz.test_samir.repository.TaskHistoryRepository;
 import com.riz.test_samir.repository.TaskRepository;
 import com.riz.test_samir.repository.UserInfoRepository;
 import com.riz.test_samir.service.TaskService;
@@ -18,23 +21,27 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class TaskServiceImpl implements TaskService {
 
     public static final String TASK_NOT_FOUND = "Task not found";
     private final TaskRepository taskRepository;
     private final UserInfoRepository userInfoRepository;
+    private final TaskHistoryRepository taskHistoryRepository;
 
     @Autowired
-    public TaskServiceImpl(TaskRepository taskRepository, UserInfoRepository userInfoRepository) {
+    public TaskServiceImpl(TaskRepository taskRepository, UserInfoRepository userInfoRepository, TaskHistoryRepository taskHistoryRepository) {
         this.taskRepository = taskRepository;
         this.userInfoRepository = userInfoRepository;
+        this.taskHistoryRepository = taskHistoryRepository;
     }
 
     @Override
     @Transactional
     public void create(User user, TaskCreateDto taskCreateDto) {
-        validateTitle(taskCreateDto.getTitle());
+        validateTitle(taskCreateDto.getTitle(), null);
         userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
 
         Task task = TaskMapper.INSTANCE.taskDtoToTaskCreate(taskCreateDto);
@@ -46,14 +53,13 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public TaskDto update(User user, Long id, TaskCreateDto taskCreateDto) {
-        validateTitle(taskCreateDto.getTitle());
-        Task taskExisting = taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+        Task taskExisting = taskRepository.findTaskByIdAndCreatedById(id, user.getId()).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+        validateTitle(taskCreateDto.getTitle(), taskExisting.getTitle());
         userInfoRepository.findById(taskCreateDto.getAssign()).orElseThrow(() -> new NotFoundException("User not found"));
-
-        // todo validate only task with updateBy same as login who can edit
 
         Task task = TaskMapper.INSTANCE.taskDtoToTaskUpdate(taskCreateDto, id);
         task.setCreatedBy(taskExisting.getCreatedBy());
+        task.setCreatedAt(taskExisting.getCreatedAt());
         task = taskRepository.save(task);
         addHistoryTask(task);
         return TaskMapper.INSTANCE.taskToTaskDto(task);
@@ -68,8 +74,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional
     public void updateStatus(User user, Long id, TaskStatusEnum status) {
-        // todo updateBy with user login  or add history update
-        taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+        Task taskExisting = taskRepository.findById(id).orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+        if (status.equals(taskExisting.getStatus())) {
+            return;
+        }
         taskRepository.updateTaskStatus(id, status);
         addHistoryTask(taskRepository.getReferenceById(id));
     }
@@ -86,14 +94,24 @@ public class TaskServiceImpl implements TaskService {
         );
     }
 
-    private void validateTitle(String title) {
+    private void validateTitle(String title, String taskExistingTitle) {
+        if (taskExistingTitle!= null && taskExistingTitle.equalsIgnoreCase(title)) return;
         if (taskRepository.existsTaskByTitleEqualsIgnoreCase(title)){
             throw new BadRequestException("Title already exists");
         }
     }
 
     private void addHistoryTask(Task task) {
-        //todo add history table
+        TaskHistory history = TaskHistory.builder()
+                .taskId(task.getId())
+                .status(task.getStatus())
+                .description(task.getDescription())
+                .assign(task.getAssign().getId())
+                .changedBy(UserContext.getUser().getId())
+                .changedAt(LocalDateTime.now())
+                .build();
+
+        taskHistoryRepository.save(history);
     }
 
 }
